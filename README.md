@@ -1,270 +1,51 @@
-# MicroService_Medicamentos
-Microservicio inventario farmacia
+# Microservicio Farmacia / Inventario
 
-# Microservicio de Farmacia e Inventario de Medicamentos
+Microservicio independiente para controlar el stock de medicamentos e insumos hospitalarios dentro de la arquitectura de microservicios de HotelSync.
 
-Microservicio desarrollado como parte de la arquitectura de **HotelSync – Plataforma de Gestión Hotelera Multi-Propiedad**.
+## Alcance
 
-El servicio permite gestionar el inventario de medicamentos, controlar las cantidades disponibles, aumentar y disminuir existencias, detectar medicamentos con bajo stock y consultar medicamentos próximos a vencer.
+Este servicio implementa el dominio asignado en la actividad:
 
----
+- Crear medicamentos.
+- Consultar medicamentos.
+- Aumentar stock.
+- Disminuir stock con control de concurrencia.
+- Consultar medicamentos próximos a vencer.
+- Consultar medicamentos con stock bajo.
+- Persistencia propia en SQLite.
+- Validaciones de entrada y manejo explícito de errores HTTP.
 
-## 1. Descripción
+La ficha de HotelSync propone NestJS sobre Node.js para servicios transaccionales. Por una contingencia operativa, el servicio migró su persistencia de PostgreSQL a SQLite (archivo local, sin servidor de base de datos separado).
 
-El **Microservicio de Farmacia** funciona como un servicio independiente dentro del ecosistema de HotelSync.
+## Endpoints
 
-Su responsabilidad principal es administrar la información relacionada con los medicamentos y su inventario.
+Base local: `http://localhost:3001/api`
 
-El servicio permite:
+| Método | Endpoint | Descripción |
+|---|---|---|
+| POST | `/medicamentos` | Registra un medicamento/lote |
+| GET | `/medicamentos` | Lista medicamentos |
+| PATCH | `/medicamentos/:id/aumentar` | Aumenta stock |
+| PATCH | `/medicamentos/:id/disminuir` | Disminuye stock de forma segura |
+| GET | `/medicamentos/proximos-vencer` | Lista lotes que vencen en los próximos 30 días |
+| GET | `/medicamentos/bajo-stock` | Lista medicamentos en o por debajo del umbral |
 
-* Registrar medicamentos.
-* Consultar medicamentos registrados.
-* Aumentar la cantidad disponible de un medicamento.
-* Disminuir la cantidad disponible.
-* Evitar descuentos cuando no existe suficiente stock.
-* Consultar medicamentos próximos a vencer.
-* Consultar medicamentos cuyo stock se encuentra por debajo del mínimo establecido.
-
-La arquitectura general sigue el enfoque de microservicios planteado para HotelSync, donde cada servicio mantiene responsabilidades específicas y puede disponer de su propia persistencia.
-
----
-
-## 2. Tecnologías utilizadas
-
-* Node.js
-* NestJS
-* TypeScript
-* Prisma ORM
-* SQLite
-* API REST
-* PowerShell para pruebas de los endpoints
-
----
-
-## 3. Arquitectura
-
-El microservicio se encuentra estructurado de la siguiente manera:
-
-```text
-HotelSync
-    │
-    ▼
-API Gateway
-    │
-    ▼
-Microservicio de Farmacia
-    │
-    ├── Controller
-    │
-    ├── Service
-    │
-    └── Prisma
-          │
-          ▼
-       SQLite
-```
-
-### Componentes principales
-
-**Controller**
-
-Recibe las solicitudes HTTP y expone los endpoints REST del microservicio.
-
-**Service**
-
-Contiene las reglas de negocio relacionadas con el inventario de medicamentos.
-
-**Prisma**
-
-Se utiliza como ORM para realizar las operaciones sobre la base de datos.
-
-**SQLite**
-
-Almacena la información propia del microservicio.
-
----
-
-## 4. Modelo de datos
-
-Cada medicamento contiene información relacionada con su identificación, presentación, lote, vencimiento y existencia disponible.
-
-### Medicamento
-
-| Campo                | Descripción                   |
-| -------------------- | ----------------------------- |
-| `id`                 | Identificador único           |
-| `nombreMedicamento`  | Nombre del medicamento        |
-| `presentacion`       | Presentación del medicamento  |
-| `lote`               | Número o código del lote      |
-| `fechaVencimiento`   | Fecha de vencimiento          |
-| `cantidadDisponible` | Cantidad actual disponible    |
-| `umbralMinimo`       | Cantidad mínima permitida     |
-| `creadoEn`           | Fecha de creación             |
-| `actualizadoEn`      | Fecha de última actualización |
-
----
-
-## 5. Instalación
-
-### Requisitos
-
-Tener instalado:
-
-* Node.js
-* npm
-
-No es necesario instalar un servidor PostgreSQL para esta versión, ya que el proyecto utiliza SQLite.
-
----
-
-### Clonar el repositorio
-
-```bash
-git clone <URL_DEL_REPOSITORIO>
-```
-
-Entrar en la carpeta:
-
-```bash
-cd microservicio-farmacia
-```
-
----
-
-### Instalar dependencias
-
-En PowerShell, si la ejecución de `npm.ps1` está restringida, se puede utilizar:
-
-```powershell
-npm.cmd install
-```
-
----
-
-## 6. Configuración de la base de datos
-
-El proyecto utiliza SQLite mediante Prisma.
-
-La conexión se configura mediante la variable:
-
-```env
-DATABASE_URL="file:./dev.db"
-```
-
-La base de datos se genera como un archivo local de SQLite.
-
----
-
-## 7. Migraciones
-
-Para crear o actualizar la estructura de la base de datos:
-
-```powershell
-npx.cmd prisma migrate dev --name init
-```
-
-También se puede consultar la base de datos mediante Prisma Studio:
-
-```powershell
-npx.cmd prisma studio
-```
-
----
-
-## 8. Ejecutar el proyecto
-
-Para iniciar el microservicio en modo desarrollo:
-
-```powershell
-npm.cmd run start:dev
-```
-
-El servicio queda disponible en:
-
-```text
-http://localhost:3001
-```
-
-La API utiliza el prefijo:
-
-```text
-/api
-```
-
-Por ejemplo:
-
-```text
-http://localhost:3001/api/medicamentos
-```
-
----
-
-# 9. Endpoints
-
-## 9.1 Crear medicamento
-
-### Método
-
-```http
-POST /api/medicamentos
-```
-
-### Ejemplo
+### POST /medicamentos
 
 ```json
 {
   "nombreMedicamento": "Paracetamol",
-  "presentacion": "Tabletas 500 mg",
-  "lote": "LOT-001",
-  "fechaVencimiento": "2027-12-31T00:00:00.000Z",
+  "presentacion": "Tableta 500 mg",
+  "lote": "PAR-2026-001",
+  "fechaVencimiento": "2027-05-30T00:00:00.000Z",
   "cantidadDisponible": 100,
   "umbralMinimo": 20
 }
 ```
 
----
+Respuesta: `201 Created`.
 
-## 9.2 Consultar medicamentos
-
-### Método
-
-```http
-GET /api/medicamentos
-```
-
-### Ejemplo de respuesta
-
-```json
-[
-  {
-    "id": 1,
-    "nombreMedicamento": "Paracetamol",
-    "presentacion": "Tabletas 500 mg",
-    "lote": "LOT-001",
-    "fechaVencimiento": "2027-12-31T00:00:00.000Z",
-    "cantidadDisponible": 120,
-    "umbralMinimo": 20
-  }
-]
-```
-
----
-
-## 9.3 Aumentar stock
-
-### Método
-
-```http
-PATCH /api/medicamentos/:id/aumentar
-```
-
-### Ejemplo
-
-```http
-PATCH /api/medicamentos/1/aumentar
-```
-
-### Body
+### PATCH /medicamentos/1/aumentar
 
 ```json
 {
@@ -272,231 +53,167 @@ PATCH /api/medicamentos/1/aumentar
 }
 ```
 
-La cantidad disponible se incrementa según la cantidad indicada.
+Respuesta: `200 OK`.
 
----
-
-## 9.4 Disminuir stock
-
-### Método
-
-```http
-PATCH /api/medicamentos/:id/disminuir
-```
-
-### Ejemplo
-
-```http
-PATCH /api/medicamentos/1/disminuir
-```
-
-### Body
+### PATCH /medicamentos/1/disminuir
 
 ```json
 {
-  "cantidad": 30
+  "cantidad": 10
 }
 ```
 
-La cantidad disponible se reduce según la cantidad indicada.
+Respuesta: `200 OK`.
 
----
+Si no existe el medicamento: `404 Not Found`.
+Si no hay stock suficiente: `409 Conflict`.
+Si los datos no cumplen validaciones: `400 Bad Request`.
 
-## 9.5 Control de stock insuficiente
+## Arquitectura
 
-El servicio evita realizar una disminución cuando la cantidad solicitada es superior al stock disponible.
-
-Por ejemplo, si existen:
-
-```text
-Stock disponible: 120
+```mermaid
+flowchart LR
+  C[Cliente / Frontend] -->|REST| API[API Gateway / Entrada]
+  API --> F[Microservicio Farmacia / Inventario]
+  subgraph FMS[Microservicio]
+    CTRL[Controllers]
+    SVC[Reglas de negocio]
+    DB[(SQLite)]
+    CTRL --> SVC --> DB
+  end
+  F -.->|eventos futuros| MQ[RabbitMQ]
+  MQ -.-> RS[Otros servicios]
 ```
 
-y se solicita:
+El diagrama también está disponible en `docs/arquitectura.mmd`.
 
-```text
-Cantidad a disminuir: 200
+## Instalación
+
+### 1. Requisitos
+
+- Node.js 20+
+- npm
+
+No se necesita un servidor de base de datos: SQLite guarda todo en un archivo local (`prisma/dev.db`), creado automáticamente al migrar.
+
+### 2. Instalar dependencias
+
+```bash
+npm install
 ```
 
-el servicio responde:
+### 3. Configurar entorno
 
-```json
-{
-  "message": "Stock insuficiente. Disponible: 120.",
-  "error": "Conflict",
-  "statusCode": 409
-}
+Copiar `.env.example` como `.env` y ajustar `DATABASE_URL`.
+
+### 4. Crear la base de datos y migración
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name init
 ```
 
-Esto evita que el inventario termine con cantidades negativas.
+### 5. Ejecutar
 
----
-
-## 9.6 Medicamentos próximos a vencer
-
-### Método
-
-```http
-GET /api/medicamentos/proximos-vencer
+```bash
+npm run start:dev
 ```
 
-Este endpoint permite identificar medicamentos cuya fecha de vencimiento se encuentra próxima.
+El servicio quedará disponible en `http://localhost:3001/api`.
 
-### Ejemplo probado
+## Pruebas rápidas con curl
 
-Se registró:
+Crear:
 
-```text
-Medicamento: Amoxicilina
-Fecha de vencimiento: 2026-09-15
+```bash
+curl -X POST http://localhost:3001/api/medicamentos   -H "Content-Type: application/json"   -d "{"nombreMedicamento":"Paracetamol","presentacion":"Tableta 500 mg","lote":"PAR-001","fechaVencimiento":"2027-05-30T00:00:00.000Z","cantidadDisponible":100,"umbralMinimo":20}"
 ```
 
-La consulta permitió identificar correctamente este medicamento.
+Listar:
 
----
-
-## 9.7 Medicamentos con bajo stock
-
-### Método
-
-```http
-GET /api/medicamentos/bajo-stock
+```bash
+curl http://localhost:3001/api/medicamentos
 ```
 
-Este endpoint identifica los medicamentos cuya cantidad disponible es igual o inferior al umbral mínimo establecido.
+Aumentar:
 
-### Ejemplo probado
-
-```text
-Medicamento: Ibuprofeno
-Cantidad disponible: 5
-Umbral mínimo: 20
+```bash
+curl -X PATCH http://localhost:3001/api/medicamentos/1/aumentar   -H "Content-Type: application/json"   -d "{"cantidad":50}"
 ```
 
-Como:
+Disminuir:
 
-```text
-5 <= 20
+```bash
+curl -X PATCH http://localhost:3001/api/medicamentos/1/disminuir   -H "Content-Type: application/json"   -d "{"cantidad":10}"
 ```
 
-el medicamento es identificado como producto con bajo stock.
+Próximos a vencer:
 
----
-
-# 10. Pruebas realizadas
-
-Durante las pruebas funcionales se verificaron los siguientes casos:
-
-| Prueba                                | Resultado      |
-| ------------------------------------- | -------------- |
-| Crear medicamento                     | Correcto       |
-| Consultar medicamentos                | Correcto       |
-| Aumentar stock                        | Correcto       |
-| Disminuir stock                       | Correcto       |
-| Intentar disminuir stock insuficiente | `409 Conflict` |
-| Consultar próximos a vencer           | Correcto       |
-| Consultar medicamentos con bajo stock | Correcto       |
-
----
-
-# 11. Ejemplos de datos utilizados
-
-### Paracetamol
-
-```text
-ID: 1
-Presentación: Tabletas 500 mg
-Lote: LOT-001
-Stock: 120
-Stock mínimo: 20
-Vencimiento: 2027-12-31
+```bash
+curl http://localhost:3001/api/medicamentos/proximos-vencer
 ```
 
-### Amoxicilina
+Bajo stock:
 
-```text
-ID: 2
-Presentación: Cápsulas 500 mg
-Lote: LOT-002
-Stock: 50
-Stock mínimo: 10
-Vencimiento: 2026-09-15
+```bash
+curl http://localhost:3001/api/medicamentos/bajo-stock
 ```
 
-### Ibuprofeno
+## Control de concurrencia
 
-```text
-ID: 3
-Presentación: Tabletas 400 mg
-Lote: LOT-003
-Stock: 5
-Stock mínimo: 20
-Vencimiento: 2028-01-30
-```
+La disminución de stock se realiza mediante una operación transaccional y condicional:
 
----
+`cantidadDisponible >= cantidadSolicitada`
 
-# 12. Estructura del proyecto
+La actualización solo se ejecuta si esa condición se cumple. De esta forma, dos solicitudes concurrentes no pueden dejar el stock por debajo de cero por una lectura desactualizada.
+
+## Integración con el sistema
+
+El documento de HotelSync plantea comunicación REST síncrona para consultas y eventos asíncronos para desacoplar procesos. Para este microservicio, una integración futura puede publicar eventos como `stock.updated` o `stock.low` mediante RabbitMQ. La implementación de esos eventos no es necesaria para los endpoints mínimos de esta actividad.
+
+## Estructura
 
 ```text
 microservicio-farmacia/
-│
+├── docs/
+│   └── arquitectura.mmd
 ├── prisma/
-│   ├── migrations/
 │   └── schema.prisma
-│
 ├── src/
 │   ├── medicamentos/
 │   │   ├── dto/
+│   │   │   ├── cantidad.dto.ts
+│   │   │   └── create-medicamento.dto.ts
 │   │   ├── medicamentos.controller.ts
-│   │   ├── medicamentos.service.ts
-│   │   └── medicamentos.module.ts
-│   │
-│   ├── prisma/
-│   │   ├── prisma.service.ts
-│   │   └── prisma.module.ts
-│   │
+│   │   ├── medicamentos.module.ts
+│   │   └── medicamentos.service.ts
 │   ├── app.module.ts
-│   └── main.ts
-│
-├── docs/
-│   └── arquitectura.md
-│
+│   ├── main.ts
+│   └── prisma.module.ts
 ├── .env.example
 ├── .gitignore
+├── nest-cli.json
 ├── package.json
 ├── README.md
+├── tsconfig.build.json
 └── tsconfig.json
 ```
 
----
+## Commits sugeridos
 
-# 13. Relación con HotelSync
+No subir todo como un único commit. Un historial razonable para la entrega sería:
 
-El microservicio de farmacia se plantea como un servicio independiente dentro de la arquitectura general de HotelSync.
+1. `chore: inicializar microservicio NestJS`
+2. `feat: agregar modelo de medicamentos y Prisma`
+3. `feat: implementar endpoints de inventario`
+4. `feat: agregar validaciones y control de stock`
+5. `docs: agregar arquitectura y README`
+6. `test: agregar evidencias de endpoints`
 
-Su responsabilidad está limitada a la gestión del inventario de medicamentos, evitando mezclar esta lógica con otros servicios de la plataforma.
+## Evidencias para la entrega
 
-La comunicación futura con otros componentes de HotelSync puede realizarse mediante el API Gateway y mecanismos de comunicación entre microservicios.
+Tomar capturas de pantalla de una herramienta como Postman, Insomnia o Thunder Client mostrando al menos una respuesta exitosa de cada endpoint.
 
-La integración con otros servicios no forma parte de la implementación funcional de este microservicio.
+## Nota
 
----
-
-# 14. Consideraciones
-
-El microservicio está diseñado para funcionar de manera independiente y mantener su propia persistencia.
-
-El control de stock evita descuentos superiores a la cantidad disponible.
-
-Las consultas de próximos vencimientos y bajo stock permiten generar información útil para la gestión del inventario.
-
----
-
-## 15. Autor
-
-**Proyecto académico – Arquitectura de Software**
-
-**Microservicio:** Farmacia / Inventario de Medicamentos
-
-**Proyecto principal:** HotelSync – Plataforma de Gestión Hotelera Multi-Propiedad
+La actividad exige publicar el proyecto en GitHub. El código entregado aquí prepara el proyecto, pero la creación del repositorio, los commits y las capturas de funcionamiento deben realizarse en el entorno del estudiante.
