@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Medicamento {
+  id                Int      @id @default(autoincrement())
+  nombreMedicamento String
+  presentacion      String
+  lote              String
+  fechaVencimiento  DateTime
+  cantidadDisponible Int
+  umbralMinimo      Int
+  creadoEn          DateTime @default(now())
+  actualizadoEn     DateTime @updatedAt
+
+  @@index([fechaVencimiento])
+  @@index([cantidadDisponible])
+  @@index([lote])
+  @@map("medicamentos")
+}
