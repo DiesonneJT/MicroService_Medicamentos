@@ -1,0 +1,16 @@
+flowchart LR
+  C[Cliente / Frontend] -->|REST| API[API Gateway / Entrada]
+  API --> F[Microservicio Farmacia / Inventario]
+
+  subgraph FMS[Microservicio Farmacia]
+    CTRL[Controllers / API REST]
+    SVC[Service / Reglas de negocio]
+    DB[SQLite - Farmacia DB]
+    CTRL --> SVC --> DB
+  end
+
+  F --> CTRL
+  F -.->|futuro evento de stock/alerta| MQ[RabbitMQ]
+  MQ -.-> RS[Otros servicios del sistema]
+
+  RS -.->|según integración| F

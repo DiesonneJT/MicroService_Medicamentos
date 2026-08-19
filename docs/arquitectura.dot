@@ -1,0 +1,20 @@
+digraph G {
+  rankdir=LR;
+  node [shape=box, fontname="Arial"];
+  edge [fontname="Arial"];
+  cliente [label="Cliente / Frontend"];
+  api [label="API Gateway / Entrada"];
+  ms [label="Microservicio\nFarmacia / Inventario", shape=box3d];
+  controller [label="Controllers\nAPI REST"];
+  service [label="Service\nReglas de negocio"];
+  db [label="SQLite\nFarmacia DB", shape=cylinder];
+  rabbit [label="RabbitMQ", shape=box];
+  otros [label="Otros microservicios"];
+  cliente -> api [label="REST"];
+  api -> ms;
+  ms -> controller;
+  controller -> service;
+  service -> db;
+  ms -> rabbit [label="eventos futuros", style=dashed];
+  rabbit -> otros [label="integración", style=dashed];
+}
